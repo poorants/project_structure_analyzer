@@ -12,8 +12,8 @@ class SourceModel {
 
   SourceModel({
     hashCode,
-    required this.name,
-    required this.directory,
+    this.name,
+    this.directory,
     extentionList,
     includedHashCodeList,
   })  : this.hashCode = hashCode ?? directory.hashCode ^ name.hashCode,
