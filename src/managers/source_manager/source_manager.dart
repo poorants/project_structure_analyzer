@@ -38,6 +38,9 @@ class SourceManager {
   }
 
   void _setDatabase() {
+    if (!Directory('datas').existsSync()) {
+      Directory('datas').createSync(recursive: true);
+    }
     if (!File(this._databasePath).existsSync()) {
       miner.getSourceWithProject(this.info.projectPath);
       miner.saveSourceModelList(this._databasePath);
