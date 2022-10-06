@@ -51,33 +51,6 @@ class TreeMaker {
   TreeNodeModel getRootNode() {
     return _treeNodeList.first;
   }
-  // has hashCode
-
-  bool hashashCode(int hashCode) {
-    bool result = false;
-    TreeNodeModel rootNode = getRootNode();
-    rootNode.childTreeNodeList.forEach((element) {
-      if (element.hashCode == hashCode) {
-        result = true;
-      } else {
-        result = _hashashCode(element.childTreeNodeList, hashCode);
-      }
-    });
-    return result;
-  }
-
-  // Recursively search for the treeNodeModel's childTreeNodeList.
-  bool _hashashCode(List<TreeNodeModel> treeNodeList, int hashCode) {
-    bool result = false;
-    treeNodeList.forEach((element) {
-      if (element.hashCode == hashCode) {
-        result = true;
-      } else {
-        result = _hashashCode(element.childTreeNodeList, hashCode);
-      }
-    });
-    return result;
-  }
 
   // print tree
   void printTree() {

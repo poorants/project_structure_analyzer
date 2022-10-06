@@ -1,5 +1,44 @@
 part of 'miner.dart';
 
+/**
+ * Locate the file '.h', '.cpp', '.c' in the target directory and add it to the sourceList.
+ */
+void _$GetSourceWithDirectory(SourceMiner instance, String targetDirectory,
+    {List<String> extentionList = const ['h', 'cpp', 'c']}) {
+  // Get the files and directories from the path you entered.
+  List<FileSystemEntity> entities = Directory(targetDirectory).listSync();
+  // Traverse the files and directories you got.
+  for (FileSystemEntity entity in entities) {
+    // If it's a file
+    if (entity is File) {
+      // If the file extension is ".h" or ".cpp"
+      if (extentionList.contains(extname(entity.path))) {
+        String name = basename(entity.path, false);
+        String directory = dirname(entity.path);
+        String extension = extname(entity.path);
+
+        SourceModel source = SourceModel(
+            name: basename(entity.path, false),
+            directory: dirname(entity.path));
+        source.addextention(extname(entity.path));
+
+        if (instance.hasHashcode(source.hashCode)) {
+          SourceModel getSource =
+              instance.getSourceModelByHashCode(source.hashCode);
+          getSource.extentionList.add(source.extentionList.first);
+        } else {
+          instance._sourceModelList.add(source);
+        }
+      }
+    }
+    // If it's a directory
+    else if (entity is Directory) {
+      // Call it recursively.
+      _$GetSourceWithDirectory(instance, entity.path);
+    }
+  }
+}
+
 void mergeSourceModel(List<SourceModel> sourceList, SourceModel source) {
   int index =
       sourceList.indexWhere((element) => element.hashCode == source.hashCode);
@@ -10,34 +49,34 @@ void mergeSourceModel(List<SourceModel> sourceList, SourceModel source) {
   }
 }
 
-/**
- * Locate the file '.h', '.cpp', '.c' in the target directory and add it to the sourceList.
- */
-void getSourceByDirectory(List<SourceModel> sourceList, String targetDirectory,
-    {List<String> extentionList = const ['h', 'cpp', 'c']}) {
-  // Get the files and directories from the path you entered.
-  List<FileSystemEntity> entities = Directory(targetDirectory).listSync();
-  // Traverse the files and directories you got.
-  for (FileSystemEntity entity in entities) {
-    // If it's a file
-    if (entity is File) {
-      // If the file extension is ".h" or ".cpp"
-      if (extentionList.contains(extname(entity.path))) {
-        // Add it to the SourceModel list.
-        SourceModel source = SourceModel(
-            name: basename(entity.path, false),
-            directory: dirname(entity.path));
-        source.addextention(extname(entity.path));
-        mergeSourceModel(sourceList, source);
-      }
-    }
-    // If it's a directory
-    else if (entity is Directory) {
-      // Call it recursively.
-      getSourceByDirectory(sourceList, entity.path);
-    }
-  }
-}
+// /**
+//  * Locate the file '.h', '.cpp', '.c' in the target directory and add it to the sourceList.
+//  */
+// void getSourceByDirectory(List<SourceModel> sourceList, String targetDirectory,
+//     {List<String> extentionList = const ['h', 'cpp', 'c']}) {
+//   // Get the files and directories from the path you entered.
+//   List<FileSystemEntity> entities = Directory(targetDirectory).listSync();
+//   // Traverse the files and directories you got.
+//   for (FileSystemEntity entity in entities) {
+//     // If it's a file
+//     if (entity is File) {
+//       // If the file extension is ".h" or ".cpp"
+//       if (extentionList.contains(extname(entity.path))) {
+//         // Add it to the SourceModel list.
+//         SourceModel source = SourceModel(
+//             name: basename(entity.path, false),
+//             directory: dirname(entity.path));
+//         source.addextention(extname(entity.path));
+//         mergeSourceModel(sourceList, source);
+//       }
+//     }
+//     // If it's a directory
+//     else if (entity is Directory) {
+//       // Call it recursively.
+//       getSourceByDirectory(sourceList, entity.path);
+//     }
+//   }
+// }
 
 /**
  * Returns the header file used by the input file.
@@ -114,7 +153,7 @@ String getBetterThenIncludePath(
   }
 }
 
-void getIncludeFiles(List<SourceModel> sourceList) {
+void _$GetIncludeFiles(List<SourceModel> sourceList) {
   ProgressBar bar = new ProgressBar(' [:bar] :percent (:current/:total)',
       total: sourceList.length);
   for (var index = 0; index < sourceList.length; index++) {

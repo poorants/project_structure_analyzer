@@ -3,6 +3,7 @@ import 'dart:io';
 import 'miner/miner.dart';
 import 'tree_maker/tree_maker.dart';
 import '../../utils/path/path.dart';
+import '../../utils/file/file.dart';
 import '../../models/source_model.dart';
 
 part 'source_manager.p.information.dart';
@@ -16,8 +17,6 @@ class SourceManager {
   Infomations info = Infomations();
   SourceMiner miner;
   TreeMaker treeMaker;
-  String _databasePath;
-  // List<int> _history;
   List<TreeNodeModel> _history;
 
   SourceManager() {
@@ -37,87 +36,75 @@ class SourceManager {
     return result;
   }
 
-  void _setDatabase() {
-    if (!Directory('datas').existsSync()) {
-      Directory('datas').createSync(recursive: true);
-    }
-    if (!File(this._databasePath).existsSync()) {
-      miner.getSourceWithProject(this.info.projectPath);
-      miner.saveSourceModelList(this._databasePath);
-    } else {
-      miner.loadSourceModelList(this._databasePath);
-    }
-  }
-
   void initialize(String project, String target) {
-    print('# Initialize.');
     this.info.getInfomations(project, target);
-    this._databasePath = pathjoin(
-        'datas${Platform.pathSeparator}${info.projectName}.${Platform.operatingSystem}.json');
-    _setDatabase();
+    miner.initialize(info.projectDirectory, info.projectName);
   }
-
-  // void buildTree() {
-  //   miner.getBuildObjectList(
-  //     this.info.fileDirectory,
-  //     this.info.fileName,
-  //   );
-  // }
 
   void buildTree() {
     int rootHashCode = info.fileDirectory.hashCode ^ info.fileName.hashCode;
     treeMaker.addRootNode(rootHashCode);
 
     TreeNodeModel rootNode = treeMaker.getRootNode();
-    _test(rootNode);
-    // File('sample.json').writeAsStringSync(jsonEncode(rootNode.toJson()));
-    print('');
-    print('[GRID TREE]');
-    _gridTree(rootNode);
-    print('');
-    print('[GRID LINE]');
-    _gridLine(rootNode, List.empty(growable: true));
-    _getObjectNodes();
+    _history.add(rootNode);
+    _buildTree(rootNode);
+
+    RandomAccessFile treeFile = replaceRemoteFile(
+        pathjoin('data', 'result', info.fileName, 'tree.dat'));
+    _gridTree(rootNode, treeFile);
+
+    RandomAccessFile lineFile = replaceRemoteFile(
+        pathjoin('data', 'result', info.fileName, 'line.dat'));
+    _gridLine(rootNode, List.empty(growable: true), lineFile);
+
+    RandomAccessFile objectFile = replaceRemoteFile(
+        pathjoin('data', 'result', info.fileName, 'objects.dat'));
+    _getObjectNodes(objectFile);
   }
 
-  void _gridTree(TreeNodeModel node) {
+  void _gridTree(TreeNodeModel node, RandomAccessFile resultFile) {
+    // stopwatch
+
     SourceModel source = miner.getSourceModelByHashCode(node.hashCode);
+
     for (int i = 0; i < node.level; i++) {
-      stdout.write('  |');
+      resultFile.writeStringSync('  |');
     }
-    stdout
-        .write('-${source.directory}${Platform.pathSeparator}${source.name}.h');
+    resultFile.writeStringSync(
+        '-${source.directory}${Platform.pathSeparator}${source.name}.h');
+
     if (node.type == Nodetype.ROOT) {
-      print(' (ROOT)');
+      resultFile.writeStringSync(' (ROOT)\n');
     } else if (node.type == Nodetype.INNER) {
-      print('');
+      resultFile.writeStringSync('\n');
     } else if (node.type == Nodetype.LEAF) {
-      print(' (LEAF)');
+      resultFile.writeStringSync(' (LEAF)\n');
     } else if (node.type == Nodetype.OVERLAP) {
-      print(' (OVERLAP)');
+      resultFile.writeStringSync(' (OVERLAP)\n');
     }
 
     node.childTreeNodeList.forEach((element) {
-      _gridTree(element);
+      _gridTree(element, resultFile);
     });
   }
 
-  void _gridLine(TreeNodeModel node, List<String> buffer) {
+  void _gridLine(
+      TreeNodeModel node, List<String> buffer, RandomAccessFile resultFile) {
     SourceModel source = miner.getSourceModelByHashCode(node.hashCode);
     buffer.add('${source.directory}${Platform.pathSeparator}${source.name}.h');
     if (node.type == Nodetype.LEAF) {
-      print('${buffer.join(' > ')} (LEAF)');
+      resultFile.writeStringSync('${buffer.join(' > ')} (LEAF)\n');
     } else if (node.type == Nodetype.OVERLAP) {
-      print('${buffer.join(' > ')} (OVERLAP)');
+      resultFile.writeStringSync('${buffer.join(' > ')} (OVERLAP)\n');
     }
 
     node.childTreeNodeList.forEach((element) {
-      _gridLine(element, buffer);
+      _gridLine(element, buffer, resultFile);
     });
     buffer.removeLast();
   }
 
-  bool _test(TreeNodeModel node) {
+  bool _buildTree(TreeNodeModel node) {
     if (node.level > 50) exit(1);
 
     SourceModel source = miner.getSourceModelByHashCode(node.hashCode);
@@ -136,11 +123,9 @@ class SourceManager {
         childnode.type = Nodetype.OVERLAP;
       } else {
         _history.add(childnode);
-        if (!_test(childnode)) {
+        if (!_buildTree(childnode)) {
           childnode.type = Nodetype.LEAF;
         }
-        // _history.add(childnode.hashCode);
-        // _history.add(childnode);
       }
 
       node.childTreeNodeList.add(childnode);
@@ -149,7 +134,7 @@ class SourceManager {
     return true;
   }
 
-  void _getObjectNodes() {
+  void _getObjectNodes(RandomAccessFile resultFile) {
     List<String> headerList = List.empty(growable: true);
     List<String> objectList = List.empty(growable: true);
     for (TreeNodeModel element in this._history) {
@@ -170,11 +155,8 @@ class SourceManager {
     // headerList.forEach((element) {
     //   print(element);
     // });
-
-    print('');
-    print('[OBJECT LIST]');
     objectList.forEach((element) {
-      print(element);
+      resultFile.writeStringSync(element + '\n');
     });
   }
 }

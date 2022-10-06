@@ -9,18 +9,19 @@ void usage() {
   print('target  :  simple file name or a file name with a path.');
   print("");
   print('example:');
-  print('   - just file name');
-  if (Platform.isWindows)
+  if (Platform.isWindows) {
+    print('   - just file name');
     print('       dart main.dart d:\\svn\\REL-4.1.0.1 PccKredApiAgent.h');
-  else
-    print('       dart main.dart /mnt/d/svn/REL-4.1.0.1 PccKredApiAgent.h');
-  print('   - file name with a path');
-  if (Platform.isWindows)
+    print('   - file name with a path');
     print(
         '       dart main.dart d:\\svn\\REL-4.1.0.1 app\\cipher\\kred\\PccKredApiAgent.h');
-  else
+  } else {
+    print('   - just file name');
+    print('       dart main.dart /mnt/d/svn/REL-4.1.0.1 PccKredApiAgent.h');
+    print('   - file name with a path');
     print(
         '       dart main.dart /mnt/d/svn/REL-4.1.0.1 app/cipher/kred/PccKredApiAgent.h');
+  }
   print("");
 }
 

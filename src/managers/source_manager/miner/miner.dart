@@ -25,36 +25,47 @@ class SourceMiner {
 
   List<SourceModel> _sourceModelList;
   List<SourceModel> get sourceModels => _sourceModelList;
+  File database;
 
-  void getSourceWithProject(String projectDirectory) {
-    Directory runDirectory = Directory.current;
-    Directory.current = projectDirectory;
+  void initialize(String projectDirectory, String projectName) {
+    String databasePath = pathjoin('data', 'db', projectName + '.json');
+    this.database = File(databasePath);
+    if (this.database.existsSync()) {
+      _loadSourceModelList(databasePath);
+    } else {
+      this.database.createSync(recursive: true);
 
-    print(
-        '- Obtain source code from the "app", "lib" directory within the "$projectDirectory".');
-    getSourceByDirectory(_sourceModelList, 'app');
-    getSourceByDirectory(_sourceModelList, 'lib');
-    print('Done.');
+      Directory currentDirectory = Directory.current;
+      Directory.current = pathjoin(projectDirectory, projectName);
+      _$GetSourceWithDirectory(_instance, 'app');
+      _$GetSourceWithDirectory(_instance, 'lib');
+      _$GetIncludeFiles(_sourceModelList);
+      Directory.current = currentDirectory;
 
-    print('- Get included header file.');
-    getIncludeFiles(_sourceModelList);
-    print('Done.');
-    Ascending(_sourceModelList);
-
-    Directory.current = runDirectory;
+      _saveSourceModelList();
+    }
   }
 
-  void saveSourceModelList(String path) {
-    File(path).writeAsStringSync(
+  void _saveSourceModelList() {
+    this.database.writeAsStringSync(
         jsonEncode(_sourceModelList.map((e) => e.toJson()).toList()));
   }
 
-  void loadSourceModelList(String path) {
-    print('- Load file "$path".');
-    _sourceModelList = (jsonDecode(File(path).readAsStringSync()) as List)
+  void _loadSourceModelList(String path) {
+    _sourceModelList = (jsonDecode(this.database.readAsStringSync()) as List)
         .map((e) => SourceModel.fromJson(e))
         .toList();
-    print('Done.');
+  }
+
+  // has hashcode in _sourceModelList
+  bool hasHashcode(int hashCode) {
+    bool result = false;
+    _sourceModelList.forEach((element) {
+      if (element.hashCode == hashCode) {
+        result = true;
+      }
+    });
+    return result;
   }
 
   SourceModel getSourceModelByHashCode(int hashCode) {
